@@ -32,16 +32,26 @@ async fn login_user(
         .await;
 
     match result {
-        Ok(response) => {}
-        Err(_) => {}
+        Ok(response) => {
+            let auth_response: AuthResponse = response.json().await.unwrap();
+            auth_response.access_token
+        }
+        Err(_) => {
+            panic!("auth failed")
+        }
     }
-
-    "test".to_string()
 }
 
 #[derive(Deserialize)]
 struct Config {
     clientsecret: String,
+}
+
+#[derive(Deserialize)]
+struct AuthResponse {
+    access_token: String,
+    scope: String,
+    token_type: String,
 }
 
 #[launch]
