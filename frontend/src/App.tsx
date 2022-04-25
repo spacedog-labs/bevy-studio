@@ -15,12 +15,23 @@ const App = () => {
 const Home = () => {
   const authContext = useAuth();
 
+  const testEcho = () => {
+    fetch("/api/echo", {
+      headers: {
+        Authorization: authContext.access_token,
+      },
+    })
+      .then((response) => response.json())
+      .then((data) => console.log(data));
+  };
+
   return (
     <div>
       <h1>Home!</h1>
       <h1>{authContext.logged_in ? "true" : "false"}</h1>
       <h1>{authContext.access_token}</h1>
       <h3>{authContext.client_id}</h3>
+      <button onClick={testEcho}>Test</button>
       <Login />
     </div>
   );
