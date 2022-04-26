@@ -14,3 +14,4 @@ hyper = "0.14.18"
 mongodb = { version = "2.2.1", default-features = false ,features = ["async-std-runtime"]}
 jsonwebtoken = "8.1.0"
 chrono = "0.4.19"
+bollard = "0.12"

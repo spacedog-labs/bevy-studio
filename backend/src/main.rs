@@ -1,16 +1,20 @@
 #[macro_use]
 extern crate rocket;
 
+use bollard::container::{CreateContainerOptions, LogsOptions, StatsOptions};
+use bollard::Docker;
 use chrono::{DateTime, Utc};
 use github::GithubRequests;
 use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
 use mongodb::{options::ClientOptions, Client};
 use reqwest::Client as HTTPClient;
+use rocket::futures::TryStreamExt;
 use rocket::http::Status;
 use rocket::request::{self, FromRequest, Outcome};
 use rocket::Request;
 use rocket::{fs::FileServer, State};
 use serde::{Deserialize, Serialize};
+use std::{thread, time};
 use users::{User, UserManager};
 
 mod github;
@@ -19,6 +23,48 @@ mod users;
 #[get("/echo")]
 async fn api_echo(_jwtAuthorized: JWTAuthorized) -> String {
     "echo".to_string()
+}
+
+#[get("/runcontainer")]
+async fn run_container(_jwtAuthorized: JWTAuthorized) -> String {
+    let docker = Docker::connect_with_local_defaults().unwrap();
+    let container_id = docker
+        .create_container(
+            Some(CreateContainerOptions {
+                name: "test_container",
+            }),
+            bollard::container::Config {
+                image: Some("test"),
+                ..Default::default()
+            },
+        )
+        .await
+        .unwrap()
+        .id;
+    docker
+        .start_container::<String>(&container_id, None)
+        .await
+        .unwrap();
+
+    let ten_millis = time::Duration::from_secs(5);
+    thread::sleep(ten_millis);
+
+    let vec = &docker
+        .logs(
+            &container_id,
+            Some(LogsOptions::<String> {
+                stdout: true,
+                ..Default::default()
+            }),
+        )
+        .try_collect::<Vec<_>>()
+        .await
+        .unwrap();
+
+    let value = vec.get(1).unwrap();
+    println!("{}", value.to_string());
+
+    "working".to_string()
 }
 
 #[get("/login?<code>")]
@@ -106,7 +152,7 @@ async fn rocket() -> _ {
         .manage(client)
         .manage(client_secret)
         .manage(jwt_secret)
-        .mount("/api", routes![api_echo, login_user])
+        .mount("/api", routes![api_echo, login_user, run_container])
         .mount("/", FileServer::from("../frontend/build"))
 }
 
