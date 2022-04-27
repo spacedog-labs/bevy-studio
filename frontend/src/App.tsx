@@ -16,7 +16,7 @@ const Home = () => {
   const authContext = useAuth();
 
   const testEcho = () => {
-    fetch("/api/runcontainer", {
+    fetch("/api/echo", {
       headers: {
         Authorization: authContext.access_token,
       },
