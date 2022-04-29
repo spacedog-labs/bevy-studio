@@ -15,28 +15,7 @@ pub async fn run_worker(client: Client) -> Result<(), mongodb::error::Error> {
     let db = client.database("bevy-studio");
     let collection = db.collection::<User>("users");
 
-    let pipeline = vec![
-        doc! { "$match": { "operationType": { "$in": ["insert", "update", "replace"] } } },
-        doc! { "$project": { } },
-    ];
-
-    let mut change_stream = collection
-        .watch(
-            pipeline,
-            ChangeStreamOptions::builder()
-                .full_document(Some(FullDocumentType::UpdateLookup))
-                .build(),
-        )
-        .await
-        .unwrap();
-
-    loop {
-        let event = change_stream.next().await.unwrap().unwrap();
-        println!(
-            "operation performed: {:?}, document: {:?}",
-            event.operation_type, event.full_document
-        );
-    }
+    loop {}
 }
 
 async fn run_container() -> String {
