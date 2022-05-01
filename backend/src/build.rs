@@ -1,21 +1,16 @@
-use bollard::container::{CreateContainerOptions, LogsOptions, StatsOptions};
+use bollard::container::{CreateContainerOptions, LogsOptions};
 use bollard::Docker;
-use mongodb::bson::{doc, Document};
-use mongodb::change_stream::event::ChangeNamespace;
-use mongodb::options::ChangeStreamOptions;
-use mongodb::options::FullDocumentType;
-use mongodb::options::SelectionCriteria;
-use mongodb::{options::ClientOptions, Client};
-use rocket::futures::{StreamExt, TryStreamExt};
-use rocket::tokio;
+use rbatis::rbatis::Rbatis;
+use rocket::futures::TryStreamExt;
+use rocket::tokio::time::sleep;
+use std::time;
 
-use crate::users::User;
+pub async fn run_worker(sql_client: &Rbatis) -> Result<(), ()> {
+    let poll_rate = time::Duration::from_millis(500);
 
-pub async fn run_worker(client: Client) -> Result<(), mongodb::error::Error> {
-    let db = client.database("bevy-studio");
-    let collection = db.collection::<User>("users");
-
-    loop {}
+    loop {
+        sleep(poll_rate).await;
+    }
 }
 
 async fn run_container() -> String {

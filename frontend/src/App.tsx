@@ -1,6 +1,6 @@
 import { useAuth } from "./AuthenticationContext";
 import { Route, Routes, useSearchParams, useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 const App = () => {
   return (
@@ -14,24 +14,37 @@ const App = () => {
 
 const Home = () => {
   const authContext = useAuth();
+  const [avatar_url, set_avatar_url] = useState("");
 
-  const testEcho = () => {
-    fetch("/api/echo", {
+  const get_avatar = () => {
+    fetch("/api/user/avatar", {
       headers: {
         Authorization: authContext.access_token,
       },
     })
-      .then((response) => response.json())
-      .then((data) => console.log(data));
+      .then((response) => response.text())
+      .then((text) => set_avatar_url(text));
+  };
+
+  const upload = () => {
+    fetch("/api/projects/upload", {
+      headers: {
+        Authorization: authContext.access_token,
+      },
+      body: "peepeepoopoo",
+      method: "POST",
+    })
+      .then((response) => response.text())
+      .then((text) => console.log(text));
   };
 
   return (
     <div>
       <h1>Home!</h1>
-      <h1>{authContext.logged_in ? "true" : "false"}</h1>
-      <h1>{authContext.access_token}</h1>
-      <h3>{authContext.client_id}</h3>
-      <button onClick={testEcho}>Test</button>
+      <h1>{authContext.logged_in ? "logged in" : "not logged in"}</h1>
+      {avatar_url != "" ? <img src={avatar_url}></img> : <></>}
+      <button onClick={get_avatar}>Get Avatar</button>
+      <button onClick={upload}>Upload</button>
       <Login />
     </div>
   );

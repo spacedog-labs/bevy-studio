@@ -1,29 +1,67 @@
 #[macro_use]
 extern crate rocket;
 
+#[macro_use]
+extern crate rbatis;
+
 use auth::{mint_jwt, JWTAuthorized, JWTSecret};
+use db::users::*;
 use github::GithubRequests;
-use mongodb::{options::ClientOptions, Client};
+use hyper::body::Bytes;
+use rbatis::rbatis::Rbatis;
 use reqwest::Client as HTTPClient;
+use rocket::figment::Provider;
 use rocket::http::Status;
 use rocket::{fs::FileServer, tokio, State};
-use users::{User, UserManager};
+use rusoto_core::{ByteStream, HttpClient};
+use rusoto_credential::{AwsCredentials, ProvideAwsCredentials};
+use rusoto_s3::{HeadBucketRequest, PutObjectRequest, S3Client, S3};
+use rusoto_signature::Region;
 
 mod auth;
 mod build;
 mod github;
-mod users;
 
-#[get("/echo")]
-async fn api_echo(_jwt_authorized: JWTAuthorized) -> String {
-    "echo".to_string()
+mod db;
+
+#[get("/avatar")]
+async fn avatar(jwt_authorized: JWTAuthorized, sql_client: &State<Rbatis>) -> String {
+    let user_manager = UserManager {};
+    let user_opt = user_manager
+        .get_user(jwt_authorized.0, sql_client)
+        .await
+        .unwrap();
+
+    if let Some(user) = user_opt {
+        user.avatar_url
+    } else {
+        "".to_string()
+    }
+}
+
+#[post("/upload", data = "<text>")]
+async fn upload(
+    jwt_authorized: JWTAuthorized,
+    s3_client: &State<S3Client>,
+    text: String,
+) -> String {
+    let _put_result = s3_client
+        .put_object(PutObjectRequest {
+            body: Some(ByteStream::from(text.into_bytes())),
+            bucket: "bevy-studio-projects".to_string(),
+            key: "yolo".to_string(),
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+    jwt_authorized.0
 }
 
 #[get("/login?<code>")]
 async fn login_user(
     code: Option<String>,
     client: &State<HTTPClient>,
-    cosmos_client: &State<Client>,
+    sql_client: &State<Rbatis>,
     client_secret: &State<ClientSecret>,
     jwt_secret: &State<JWTSecret>,
 ) -> (Status, String) {
@@ -41,7 +79,7 @@ async fn login_user(
                 Ok(user) => {
                     let user_manager = UserManager {};
                     let user_opt = user_manager
-                        .get_user(user.id.to_string(), cosmos_client)
+                        .get_user(user.id.to_string(), sql_client)
                         .await
                         .unwrap();
 
@@ -58,7 +96,7 @@ async fn login_user(
                         };
 
                         user_manager
-                            .insert_user(&new_user, &cosmos_client)
+                            .insert_user(&new_user, sql_client)
                             .await
                             .unwrap();
 
@@ -75,34 +113,43 @@ async fn login_user(
 }
 
 struct ClientSecret(String);
-struct CosmosSecret(String);
-impl AsRef<str> for CosmosSecret {
-    fn as_ref(&self) -> &str {
-        &self.0
-    }
-}
+struct SQLSecret(String);
+struct StorageSecret(String);
 
 #[launch]
 async fn rocket() -> _ {
     let client_secret = ClientSecret(get_environment_variable("ROCKET_GITHUB"));
-    let cosmos_secret = CosmosSecret(get_environment_variable("ROCKET_COSMOS"));
+    let sql_secret = SQLSecret(get_environment_variable("ROCKET_SQL"));
     let jwt_secret = JWTSecret(get_environment_variable("ROCKET_JWT"));
 
-    let client_options = ClientOptions::parse(&cosmos_secret).await.unwrap();
-    let client = Client::with_options(client_options).unwrap();
+    let client = S3Client::new_with(
+        HttpClient::new().unwrap(),
+        DOCredentials,
+        Region::Custom {
+            name: "sfo3".to_string(),
+            endpoint: "sfo3.digitaloceanspaces.com".to_string(),
+        },
+    );
+
+    let rb = Rbatis::new();
+    rb.link(&sql_secret.0).await.unwrap();
 
     tokio::spawn(async move {
-        let client_options = ClientOptions::parse(&cosmos_secret).await.unwrap();
-        let builder_db_client = Client::with_options(client_options).unwrap();
-        build::run_worker(builder_db_client).await
+        let background_rb = Rbatis::new();
+        background_rb.link(&sql_secret.0).await.unwrap();
+
+        build::run_worker(&background_rb).await
     });
 
     rocket::build()
         .manage(reqwest::Client::new())
-        .manage(client)
+        .manage(rb)
         .manage(client_secret)
         .manage(jwt_secret)
-        .mount("/api", routes![api_echo, login_user])
+        .manage(client)
+        .mount("/api/projects", routes![upload])
+        .mount("/api/user", routes![avatar])
+        .mount("/api", routes![login_user])
         .mount("/", FileServer::from("../frontend/build"))
 }
 
@@ -113,5 +160,22 @@ fn get_environment_variable(name: &str) -> String {
         result.to_str().unwrap().to_string()
     } else {
         panic!("missing required environment variable {}", name)
+    }
+}
+
+struct DOCredentials;
+
+#[async_trait]
+impl ProvideAwsCredentials for DOCredentials {
+    async fn credentials(
+        &self,
+    ) -> Result<rusoto_credential::AwsCredentials, rusoto_credential::CredentialsError> {
+        let storage_secret = StorageSecret(get_environment_variable("ROCKET_STORAGE"));
+        Ok(AwsCredentials::new(
+            "WMHTWNDNW2IRNI6FWPV5",
+            storage_secret.0,
+            None,
+            None,
+        ))
     }
 }

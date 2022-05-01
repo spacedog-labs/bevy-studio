@@ -1,8 +1,8 @@
 use chrono::Utc;
-use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
+use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use rocket::http::Status;
 use rocket::request::FromRequest;
-use rocket::request::{self, Outcome};
+use rocket::request::Outcome;
 use rocket::Request;
 use serde::{Deserialize, Serialize};
 
@@ -43,7 +43,7 @@ pub fn validate_jwt(jwt_secret: &str, key: &str) -> Option<String> {
     }
 }
 
-pub struct JWTAuthorized(String);
+pub struct JWTAuthorized(pub String);
 
 #[derive(Debug)]
 pub enum JWTError {
