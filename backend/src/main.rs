@@ -5,41 +5,25 @@ extern crate rocket;
 extern crate rbatis;
 
 use auth::{mint_jwt, JWTAuthorized, JWTSecret};
-use db::users::*;
 use github::GithubRequests;
-use hyper::body::Bytes;
 use rbatis::rbatis::Rbatis;
 use reqwest::Client as HTTPClient;
-use rocket::figment::Provider;
 use rocket::http::Status;
+use rocket::tokio::io::AsyncReadExt;
 use rocket::{fs::FileServer, tokio, State};
 use rusoto_core::{ByteStream, HttpClient};
 use rusoto_credential::{AwsCredentials, ProvideAwsCredentials};
-use rusoto_s3::{HeadBucketRequest, PutObjectRequest, S3Client, S3};
+use rusoto_s3::{GetObjectRequest, PutObjectRequest, S3Client, S3};
 use rusoto_signature::Region;
+use users::db::*;
 
 mod auth;
 mod build;
 mod github;
 
-mod db;
+mod users;
 
-#[get("/avatar")]
-async fn avatar(jwt_authorized: JWTAuthorized, sql_client: &State<Rbatis>) -> String {
-    let user_manager = UserManager {};
-    let user_opt = user_manager
-        .get_user(jwt_authorized.0, sql_client)
-        .await
-        .unwrap();
-
-    if let Some(user) = user_opt {
-        user.avatar_url
-    } else {
-        "".to_string()
-    }
-}
-
-#[post("/upload", data = "<text>")]
+#[post("/file/upload", data = "<text>")]
 async fn upload(
     jwt_authorized: JWTAuthorized,
     s3_client: &State<S3Client>,
@@ -49,12 +33,38 @@ async fn upload(
         .put_object(PutObjectRequest {
             body: Some(ByteStream::from(text.into_bytes())),
             bucket: "bevy-studio-projects".to_string(),
-            key: "yolo".to_string(),
+            key: "test/yolo".to_string(),
             ..Default::default()
         })
         .await
         .unwrap();
     jwt_authorized.0
+}
+
+#[get("/file?<file>")]
+async fn get_file(
+    jwt_authorized: JWTAuthorized,
+    s3_client: &State<S3Client>,
+    file: &str,
+) -> String {
+    let get_output = s3_client
+        .get_object(GetObjectRequest {
+            bucket: "bevy-studio-projects".to_string(),
+            key: file.to_string(),
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+
+    let mut output: String = String::new();
+    get_output
+        .body
+        .unwrap()
+        .into_async_read()
+        .read_to_string(&mut output)
+        .await
+        .unwrap();
+    output
 }
 
 #[get("/login?<code>")]
@@ -147,8 +157,8 @@ async fn rocket() -> _ {
         .manage(client_secret)
         .manage(jwt_secret)
         .manage(client)
-        .mount("/api/projects", routes![upload])
-        .mount("/api/user", routes![avatar])
+        .mount("/api/projects", routes![upload, get_file])
+        .mount("/api/user", users::routes())
         .mount("/api", routes![login_user])
         .mount("/", FileServer::from("../frontend/build"))
 }

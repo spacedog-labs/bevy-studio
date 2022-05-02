@@ -16,14 +16,23 @@ const Home = () => {
   const authContext = useAuth();
   const [avatar_url, set_avatar_url] = useState("");
 
-  const get_avatar = () => {
-    fetch("/api/user/avatar", {
+  const get_me = () => {
+    fetch("/api/user/me", {
       headers: {
         Authorization: authContext.access_token,
       },
     })
-      .then((response) => response.text())
-      .then((text) => set_avatar_url(text));
+      .then((response) => response.json())
+      .then((json) => console.log(json));
+  };
+  const update_me = () => {
+    fetch("/api/user/me", {
+      headers: {
+        Authorization: authContext.access_token,
+      },
+      body: JSON.stringify({ avatar_url: "wow", id: "42881380" }),
+      method: "POST",
+    });
   };
 
   const upload = () => {
@@ -38,13 +47,25 @@ const Home = () => {
       .then((text) => console.log(text));
   };
 
+  const get_file = () => {
+    fetch("/api/projects/file?file=yolo", {
+      headers: {
+        Authorization: authContext.access_token,
+      },
+    })
+      .then((response) => response.text())
+      .then((text) => console.log(text));
+  };
+
   return (
     <div>
       <h1>Home!</h1>
       <h1>{authContext.logged_in ? "logged in" : "not logged in"}</h1>
       {avatar_url != "" ? <img src={avatar_url}></img> : <></>}
-      <button onClick={get_avatar}>Get Avatar</button>
+      <button onClick={get_me}>Get Me</button>
+      <button onClick={update_me}>Update Me</button>
       <button onClick={upload}>Upload</button>
+      <button onClick={get_file}>Get File</button>
       <Login />
     </div>
   );
