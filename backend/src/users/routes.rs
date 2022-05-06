@@ -10,7 +10,7 @@ pub fn routes() -> Vec<Route> {
 
 #[get("/me")]
 async fn get_me(jwt_authorized: JWTAuthorized, sql_client: &State<Rbatis>) -> Json<User> {
-    let user_manager = UserManager {};
+    let user_manager = UserData {};
     Json(
         user_manager
             .get_user(jwt_authorized.0, sql_client)
@@ -22,7 +22,7 @@ async fn get_me(jwt_authorized: JWTAuthorized, sql_client: &State<Rbatis>) -> Js
 
 #[get("/<id>")]
 async fn get(sql_client: &State<Rbatis>, id: &str) -> Json<PublicUser> {
-    let user_manager = UserManager {};
+    let user_manager = UserData {};
     Json(
         user_manager
             .get_user(id.to_string(), sql_client)
@@ -39,7 +39,7 @@ async fn update_me(
     sql_client: &State<Rbatis>,
     user: Json<User>,
 ) -> status::NoContent {
-    let user_manager = UserManager {};
+    let user_manager = UserData {};
     user_manager
         .update_user(jwt_authorized.0.to_string(), &user, sql_client)
         .await

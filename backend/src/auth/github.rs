@@ -3,7 +3,7 @@ use hyper::StatusCode;
 use reqwest::header::ACCEPT;
 use reqwest::Client;
 use rocket::serde::json::serde_json;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::collections::HashMap;
 
 const CLIENT_ID: &str = "705625596ca39ae3136d";

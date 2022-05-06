@@ -30,10 +30,10 @@ pub struct PublicUser {
     pub avatar_url: String,
 }
 
-pub struct UserManager {}
+pub struct UserData {}
 
 /// Contains database interactions for manipulating the user
-impl UserManager {
+impl UserData {
     /// Gets any user by id
     pub async fn get_user(&self, id: String, sql_client: &Rbatis) -> Result<Option<User>, Error> {
         let wrapper = sql_client.new_wrapper().eq("id", id);
