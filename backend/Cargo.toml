@@ -20,3 +20,4 @@ rusoto_core = "0.48.0"
 rusoto_signature = "0.48.0"
 rusoto_credential = "0.48.0"
 async-trait = "0.1.53"
+uuid = { version = "1.0.0", features = ["v4"] }
