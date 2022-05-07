@@ -8,17 +8,19 @@ pub fn routes() -> Vec<Route> {
     routes![upload, get]
 }
 
-#[post("/file/upload", data = "<text>")]
+#[post("/upload/<file_name>?<project_id>", data = "<text>")]
 pub async fn upload(
     jwt_authorized: JWTAuthorized,
     s3_client: &State<S3Client>,
     text: String,
+    file_name: String,
+    project_id: String,
 ) -> String {
     let _put_result = s3_client
         .put_object(PutObjectRequest {
             body: Some(ByteStream::from(text.into_bytes())),
             bucket: "bevy-studio-projects".to_string(),
-            key: "test/yolo".to_string(),
+            key: format!("{project_id}/{file_name}",).to_string(),
             ..Default::default()
         })
         .await
@@ -26,16 +28,17 @@ pub async fn upload(
     jwt_authorized.0
 }
 
-#[get("/file?<file>")]
+#[get("/?<file>&<project_id>")]
 pub async fn get(
     _jwt_authorized: JWTAuthorized,
     s3_client: &State<S3Client>,
     file: &str,
+    project_id: &str,
 ) -> String {
     let get_output = s3_client
         .get_object(GetObjectRequest {
             bucket: "bevy-studio-projects".to_string(),
-            key: file.to_string(),
+            key: format!("{project_id}/{file}").to_string(),
             ..Default::default()
         })
         .await
