@@ -16,34 +16,27 @@ pub struct Project {
     pub release_folder: String,
     // if true the release is routable
     pub is_released: bool,
-    pub release_id: String
+    pub release_id: String,
 }
 
 pub struct ProjectData {}
 
 impl ProjectData {
-    pub async fn get(&self, id: String, sql_client: &Rbatis) -> Result<Option<Project>, Error> {
+    pub async fn get(id: String, sql_client: &Rbatis) -> Result<Option<Project>, Error> {
         let wrapper = sql_client.new_wrapper().eq("id", id);
         sql_client.fetch_by_wrapper(wrapper).await
     }
 
-    pub async fn create(&self, project: Project, sql_client: &Rbatis) -> Result<(), Error> {
-
+    pub async fn create(project: &Project, sql_client: &Rbatis) -> Result<DBExecResult, Error> {
+        sql_client.save(&project, &[]).await
     }
 
-    pub async fn get_many(&self, owner_id: String, public: bool, sql_client: &Rbatis) -> Result<Vec<Project>, Error>{
-
+    pub async fn get_many(owner_id: String, sql_client: &Rbatis) -> Result<Vec<Project>, Error> {
+        let wrapper = sql_client.new_wrapper().eq("owner_id", owner_id);
+        sql_client.fetch_list_by_wrapper(wrapper).await
     }
 
-    pub async fn set_display(&self, project_id: String, public: bool, sql_client: &Rbatis) -> Result<(), Error> {
-
-    }
-
-    pub async fn set_name(&self, project_id: String, name: String, sql_client: &Rbatis) -> Result<(), Error> {
-        
-    }
-
-    pub async fn set_release_folder(&self, project_id: String, name: String, sql_client: &Rbatis) -> Result<(), Error> {
-        
+    pub async fn update(project: &Project, sql_client: &Rbatis) -> Result<(), Error> {
+        todo!()
     }
 }

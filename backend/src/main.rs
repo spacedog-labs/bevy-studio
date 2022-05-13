@@ -17,6 +17,7 @@ use rusoto_signature::Region;
 mod auth;
 mod build;
 mod files;
+mod projects;
 mod users;
 
 pub struct GithubSecret(String);
@@ -56,6 +57,7 @@ async fn rocket() -> _ {
         .manage(client)
         .mount("/api/file", files::routes())
         .mount("/api/user", users::routes())
+        .mount("/api/project", projects::routes())
         .mount("/api/login", routes![login_user])
         .mount("/", FileServer::from("../frontend/build"))
 }

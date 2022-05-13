@@ -1,7 +1,8 @@
 import { useAuth } from "./AuthenticationContext";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
-import { User } from "./types/User";
+import { Project, User } from "./types/User";
+import { Button } from "spacedog";
 
 const Test = () => {
   const authContext = useAuth();
@@ -12,6 +13,7 @@ const Test = () => {
       <h1>{authContext.logged_in ? "logged in" : "not logged in"}</h1>
       <UserTests></UserTests>
       <FileTests></FileTests>
+      <ProjectTests></ProjectTests>
     </Container>
   );
 };
@@ -19,6 +21,7 @@ const Test = () => {
 const Container = styled.div`
   display: flex;
   flex-direction: column;
+  max-width: 50%;
 `;
 
 const UserTests = () => {
@@ -48,6 +51,7 @@ const UserTests = () => {
 
   return (
     <div>
+      <h1>User Tests</h1>
       <input type="text" defaultValue={user?.id} disabled></input>
       <input
         type="text"
@@ -60,8 +64,14 @@ const UserTests = () => {
           }
         }}
       ></input>
-      <button onClick={get_me}>Get Me</button>
-      <button onClick={update_me}>Update Me</button>
+      <Button
+        onClick={() => {
+          get_me();
+        }}
+      >
+        test
+      </Button>
+      <Button onClick={update_me}>Update Me</Button>
     </div>
   );
 };
@@ -100,6 +110,7 @@ const FileTests = () => {
 
   return (
     <div>
+      <h1>Fiel Tests</h1>
       <input
         type="file"
         onChange={(e) => {
@@ -112,6 +123,65 @@ const FileTests = () => {
       <button onClick={upload}>Upload</button>
       <button onClick={get_file}>Get File</button>
     </div>
+  );
+};
+
+const ProjectTests = () => {
+  const authContext = useAuth();
+  const [project, setProject] = useState<Project>();
+  const [targetProject, setTargetProject] = useState("");
+  const [myProjects, setMyProjects] = useState<Project[]>();
+
+  const get_project = () => {
+    fetch(`/api/project/${targetProject}`, {
+      headers: {
+        Authorization: authContext.access_token,
+      },
+    })
+      .then((response) => response.json())
+      .then((project: Project) => setProject(project));
+  };
+
+  const get_projects = () => {
+    fetch(`/api/project`, {
+      headers: {
+        Authorization: authContext.access_token,
+      },
+    })
+      .then((response) => response.json())
+      .then((projects: Project[]) => setMyProjects(projects));
+  };
+
+  const create_project = () => {
+    fetch(`/api/project/create?name=${targetProject}`, {
+      headers: {
+        Authorization: authContext.access_token,
+      },
+      method: "POST",
+    })
+      .then((response) => response.json())
+      .then((project: Project) => console.log(project));
+  };
+
+  return (
+    <Container>
+      <h1>Project Tests</h1>
+      <Container>
+        <input type="text" defaultValue={project?.name} disabled></input>
+        <input
+          type="text"
+          defaultValue={targetProject}
+          onChange={(e) => {
+            setTargetProject(e.target.value);
+          }}
+        ></input>
+        <button onClick={get_project}>Get Project</button>
+        <button onClick={create_project}>Create Project</button>
+      </Container>
+      <Container>
+        <button onClick={get_projects}>Get Projects</button>
+      </Container>
+    </Container>
   );
 };
 

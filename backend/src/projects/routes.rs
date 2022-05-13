@@ -1,22 +1,92 @@
-use crate::{auth::JWTAuthorized, users::db::*};
+use crate::auth::JWTAuthorized;
 use rbatis::rbatis::Rbatis;
+use rocket::response::status::{BadRequest, NotFound};
+use rocket::serde::json::Json;
 use rocket::{Route, State};
+use uuid::Uuid;
+
+use super::{Project, ProjectData};
 
 pub fn routes() -> Vec<Route> {
-    routes![get]
+    routes![get, get_public, create, get_many]
 }
 
 #[get("/")]
-async fn get(jwt_authorized: JWTAuthorized, sql_client: &State<Rbatis>) -> String {
-    let user_manager = UserManager {};
-    let user_opt = user_manager
-        .get_user(jwt_authorized.0, sql_client)
-        .await
-        .unwrap();
+pub async fn get_many(
+    jwt_authorized: JWTAuthorized,
+    sql_client: &State<Rbatis>,
+) -> Result<Json<Vec<Project>>, NotFound<&str>> {
+    match ProjectData::get_many(jwt_authorized.0, sql_client).await {
+        Ok(projects) => {
+            return Ok(Json(projects));
+        }
+        Err(_) => Err(NotFound("project not found")),
+    }
+}
 
-    if let Some(user) = user_opt {
-        user.avatar_url
-    } else {
-        "".to_string()
+#[get("/<project_id>")]
+pub async fn get(
+    jwt_authorized: JWTAuthorized,
+    project_id: String,
+    sql_client: &State<Rbatis>,
+) -> Result<Json<Project>, NotFound<&str>> {
+    match ProjectData::get(project_id, sql_client).await {
+        Ok(project_opt) => {
+            if let Some(project) = project_opt {
+                if project.owner_id != jwt_authorized.0 {
+                    return Err(NotFound("project not found"));
+                } else {
+                    return Ok(Json(project));
+                }
+            } else {
+                return Err(NotFound("project not found"));
+            }
+        }
+        Err(_) => Err(NotFound("project not found")),
+    }
+}
+
+#[get("/public/<project_id>")]
+async fn get_public(
+    project_id: String,
+    sql_client: &State<Rbatis>,
+) -> Result<Json<Project>, NotFound<&str>> {
+    match ProjectData::get(project_id, sql_client).await {
+        Ok(project_opt) => {
+            if let Some(project) = project_opt {
+                if project.is_public != true {
+                    return Err(NotFound("project not found"));
+                } else {
+                    return Ok(Json(project));
+                }
+            } else {
+                return Err(NotFound("project not found"));
+            }
+        }
+        Err(_) => Err(NotFound("project not found")),
+    }
+}
+
+#[post("/create?<name>")]
+async fn create(
+    jwt_authorized: JWTAuthorized,
+    name: String,
+    sql_client: &State<Rbatis>,
+) -> Result<Json<Project>, BadRequest<&str>> {
+    let project = Project {
+        id: Uuid::new_v4().to_string(),
+        name: name,
+        owner_id: jwt_authorized.0,
+        is_public: false,
+        entry_point: "index.html".to_string(),
+        release_folder: "dist".to_string(),
+        is_released: false,
+        release_id: "".to_string(),
+    };
+    match ProjectData::create(&project, sql_client).await {
+        Ok(_) => {
+            return Ok(Json(project));
+        }
+        Err(_) => Err(BadRequest(Some("failed to create"))),
     }
 }
