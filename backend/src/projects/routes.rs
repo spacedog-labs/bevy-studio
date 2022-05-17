@@ -90,3 +90,24 @@ async fn create(
         Err(_) => Err(BadRequest(Some("failed to create"))),
     }
 }
+
+#[post("/update", data = "<project>")]
+async fn update(
+    jwt_authorized: JWTAuthorized,
+    sql_client: &State<Rbatis>,
+    project: Json<Project>,
+) -> Result<Json<Project>, BadRequest<&str>> {
+    match ProjectData::update(jwt_authorized.0, &project, sql_client).await {
+        Ok(_result) => match ProjectData::get(project.id.to_string(), sql_client).await {
+            Ok(get_result) => {
+                if let Some(project) = get_result {
+                    return Ok(Json(project));
+                } else {
+                    return Err(BadRequest(Some("failed to create")));
+                }
+            }
+            Err(_) => return Err(BadRequest(Some("failed to create"))),
+        },
+        Err(_) => Err(BadRequest(Some("failed to update"))),
+    }
+}

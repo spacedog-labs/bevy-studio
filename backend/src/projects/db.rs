@@ -1,4 +1,9 @@
-use rbatis::{crud::CRUD, db::DBExecResult, rbatis::Rbatis, Error};
+use rbatis::{
+    crud::{Skip, CRUD},
+    db::DBExecResult,
+    rbatis::Rbatis,
+    Error,
+};
 
 #[crud_table]
 #[derive(Clone, Debug)]
@@ -36,7 +41,22 @@ impl ProjectData {
         sql_client.fetch_list_by_wrapper(wrapper).await
     }
 
-    pub async fn update(project: &Project, sql_client: &Rbatis) -> Result<(), Error> {
-        todo!()
+    pub async fn update(
+        owner_id: String,
+        project: &Project,
+        sql_client: &Rbatis,
+    ) -> Result<u64, Error> {
+        let wrapper = sql_client
+            .new_wrapper()
+            .eq("id", &project.id)
+            .and()
+            .eq("owner_id", owner_id);
+        sql_client
+            .update_by_wrapper(
+                project,
+                wrapper,
+                &[Skip::Column("id"), Skip::Column("owner_id")],
+            )
+            .await
     }
 }

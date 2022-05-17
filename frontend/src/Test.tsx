@@ -2,7 +2,7 @@ import { useAuth } from "./AuthenticationContext";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { Project, User } from "./types/User";
-import { Button } from "spacedog";
+import { Button, Input } from "spacedog";
 
 const Test = () => {
   const authContext = useAuth();
@@ -21,7 +21,6 @@ const Test = () => {
 const Container = styled.div`
   display: flex;
   flex-direction: column;
-  max-width: 50%;
 `;
 
 const UserTests = () => {
@@ -168,18 +167,26 @@ const ProjectTests = () => {
       <h1>Project Tests</h1>
       <Container>
         <input type="text" defaultValue={project?.name} disabled></input>
-        <input
-          type="text"
-          defaultValue={targetProject}
+        <Input
+          title="Target Project"
+          value={targetProject}
           onChange={(e) => {
             setTargetProject(e.target.value);
           }}
-        ></input>
-        <button onClick={get_project}>Get Project</button>
-        <button onClick={create_project}>Create Project</button>
+        >
+          s
+        </Input>
+        <Button onClick={get_project}>Get Project</Button>
+        <Button onClick={create_project}>Create Project</Button>
       </Container>
       <Container>
-        <button onClick={get_projects}>Get Projects</button>
+        <Button onClick={get_projects}>Get Projects</Button>
+        <h1>Projects</h1>
+        <div>
+          {myProjects?.map((p) => {
+            return <div>{p.name}</div>;
+          })}
+        </div>
       </Container>
     </Container>
   );
