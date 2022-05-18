@@ -8,7 +8,7 @@ use uuid::Uuid;
 use super::{Project, ProjectData};
 
 pub fn routes() -> Vec<Route> {
-    routes![get, get_public, create, get_many]
+    routes![get, get_public, create, get_many, update]
 }
 
 #[get("/")]

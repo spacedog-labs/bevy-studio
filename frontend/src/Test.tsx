@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { Project, User } from "./types/User";
 import { Button, Input } from "spacedog";
+import { json } from "stream/consumers";
 
 const Test = () => {
   const authContext = useAuth();
@@ -42,7 +43,6 @@ const UserTests = () => {
       headers: {
         Authorization: authContext.access_token,
       },
-
       body: JSON.stringify(user),
       method: "POST",
     });
@@ -184,7 +184,24 @@ const ProjectTests = () => {
         <h1>Projects</h1>
         <div>
           {myProjects?.map((p) => {
-            return <div>{p.name}</div>;
+            const increment = () => {
+              p.name += " che";
+              fetch(`/api/project/update`, {
+                headers: {
+                  Authorization: authContext.access_token,
+                },
+                body: JSON.stringify(p),
+                method: "POST",
+              })
+                .then((response) => response.json())
+                .then((project: Project) => console.log(project));
+            };
+            return (
+              <div>
+                {p.name}
+                <Button onClick={increment}>increment</Button>
+              </div>
+            );
           })}
         </div>
       </Container>
