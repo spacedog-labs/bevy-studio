@@ -13,3 +13,9 @@ export type Project = {
   is_released: boolean;
   release_id: string;
 };
+
+export type ProjectFile = {
+  name: string;
+  id: string;
+  project_id: string;
+};

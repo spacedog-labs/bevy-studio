@@ -32,13 +32,25 @@ impl ProjectData {
         sql_client.fetch_by_wrapper(wrapper).await
     }
 
-    pub async fn create(project: &Project, sql_client: &Rbatis) -> Result<DBExecResult, Error> {
-        sql_client.save(&project, &[]).await
+    pub async fn get_owned(
+        id: &String,
+        owner_id: &String,
+        sql_client: &Rbatis,
+    ) -> Result<Option<Project>, Error> {
+        let wrapper = sql_client
+            .new_wrapper()
+            .eq("id", id)
+            .eq("owner_id", owner_id);
+        sql_client.fetch_by_wrapper(wrapper).await
     }
 
     pub async fn get_many(owner_id: String, sql_client: &Rbatis) -> Result<Vec<Project>, Error> {
         let wrapper = sql_client.new_wrapper().eq("owner_id", owner_id);
         sql_client.fetch_list_by_wrapper(wrapper).await
+    }
+
+    pub async fn create(project: &Project, sql_client: &Rbatis) -> Result<DBExecResult, Error> {
+        sql_client.save(&project, &[]).await
     }
 
     pub async fn update(

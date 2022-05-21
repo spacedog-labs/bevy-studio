@@ -1,7 +1,7 @@
 import { useAuth } from "./AuthenticationContext";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
-import { Project, User } from "./types/User";
+import { Project, ProjectFile, User } from "./types/User";
 import { Button, Input } from "spacedog";
 import { json } from "stream/consumers";
 
@@ -79,37 +79,57 @@ const FileTests = () => {
   const authContext = useAuth();
 
   const [selectedFiles, setSelectedFile] = useState<FileList>();
+  const [projectFiles, setProjectFiles] = useState<ProjectFile[]>();
+  const [projectId, setProjectId] = useState("");
 
   const upload = () => {
     const reader = new FileReader();
 
     reader.readAsText(selectedFiles![0]);
     reader.onload = (e) => {
-      fetch(`/api/file/upload/${selectedFiles![0].name}?project_id=123`, {
-        headers: {
-          Authorization: authContext.access_token,
-        },
-        body: reader.result,
-        method: "POST",
-      })
+      fetch(
+        `/api/file/add?file_name=${
+          selectedFiles![0].name
+        }&project_id=${projectId}`,
+        {
+          headers: {
+            Authorization: authContext.access_token,
+          },
+          body: reader.result,
+          method: "POST",
+        }
+      )
         .then((response) => response.text())
         .then((text) => console.log(text));
     };
   };
 
   const get_file = () => {
-    fetch(`/api/file/?file=${selectedFiles![0].name}&project_id=123`, {
-      headers: {
-        Authorization: authContext.access_token,
-      },
-    })
+    fetch(
+      `/api/file?file_name=${selectedFiles![0].name}&project_id=${projectId}`,
+      {
+        headers: {
+          Authorization: authContext.access_token,
+        },
+      }
+    )
       .then((response) => response.text())
       .then((text) => console.log(text));
   };
 
+  const get_files = () => {
+    fetch(`/api/file/many?project_id=${projectId}`, {
+      headers: {
+        Authorization: authContext.access_token,
+      },
+    })
+      .then((response) => response.json())
+      .then((files: ProjectFile[]) => setProjectFiles(files));
+  };
+
   return (
     <div>
-      <h1>Fiel Tests</h1>
+      <h1>File Tests</h1>
       <input
         type="file"
         onChange={(e) => {
@@ -119,8 +139,18 @@ const FileTests = () => {
           setSelectedFile(e.target.files);
         }}
       ></input>
+      <input
+        type="text"
+        onChange={(e) => {
+          setProjectId(e.target.value);
+        }}
+      ></input>
       <button onClick={upload}>Upload</button>
       <button onClick={get_file}>Get File</button>
+      <button onClick={get_files}>Get Files</button>
+      {projectFiles?.map((file) => {
+        return <div>{file.name}</div>;
+      })}
     </div>
   );
 };
@@ -199,6 +229,7 @@ const ProjectTests = () => {
             return (
               <div>
                 {p.name}
+                {p.id}
                 <Button onClick={increment}>increment</Button>
               </div>
             );

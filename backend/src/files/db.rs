@@ -14,8 +14,24 @@ pub struct File {
 pub struct FileData {}
 
 impl FileData {
-    pub async fn get(&self, id: String, sql_client: &Rbatis) -> Result<Option<File>, Error> {
-        let wrapper = sql_client.new_wrapper().eq("id", id);
+    pub async fn get(
+        project_id: &String,
+        file_name: &String,
+        sql_client: &Rbatis,
+    ) -> Result<Option<File>, Error> {
+        let wrapper = sql_client
+            .new_wrapper()
+            .eq("project_id", project_id)
+            .eq("name", file_name);
         sql_client.fetch_by_wrapper(wrapper).await
+    }
+
+    pub async fn get_many(project_id: String, sql_client: &Rbatis) -> Result<Vec<File>, Error> {
+        let wrapper = sql_client.new_wrapper().eq("project_id", project_id);
+        sql_client.fetch_list_by_wrapper(wrapper).await
+    }
+
+    pub async fn create(file: &File, sql_client: &Rbatis) -> Result<DBExecResult, Error> {
+        sql_client.save(&file, &[]).await
     }
 }
